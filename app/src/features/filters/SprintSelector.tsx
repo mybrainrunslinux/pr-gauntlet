@@ -4,14 +4,15 @@ import type { Sprint } from '../../types'
 
 export function SprintSelector() {
   const { state, dispatch } = useAppContext()
-  // Correct init: null until sprints are available
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null)
+  // BUG #7: initialized from sprints[0] (first sprint, not active); useEffect never fires when same ref
+  const [activeSprint, setActiveSprint] = useState<Sprint | null>(state.sprints[0] ?? null)
 
   useEffect(() => {
-    const found = state.sprints.find(s => s.active) ?? null
+    // Bug: only runs if sprints reference changes, but seed data is stable
+    const found = state.sprints[0] ?? null
     setActiveSprint(found)
     if (found) dispatch({ type: 'SET_ACTIVE_SPRINT', sprintId: found.id })
-  }, [state.sprints, dispatch])
+  }, [])
 
   return (
     <div className="sprint-controls">

@@ -12,8 +12,7 @@ interface Props {
 export function Column({ column, cards }: Props) {
   const { setNodeRef } = useDroppable({ id: column.id })
 
-  // useMemo with [cards] dep — recomputes on every cards change
-  const count = useMemo(() => cards.length, [cards])
+  const count = useMemo(() => cards.length, []) // BUG #2: empty deps — count never updates
 
   const sortedCards = useMemo(
     () => [...cards].sort((a, b) => a.order - b.order),

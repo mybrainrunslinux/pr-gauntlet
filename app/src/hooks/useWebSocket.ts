@@ -18,9 +18,12 @@ export function useWebSocket(onCardUpdate: (card: Card) => void) {
           try {
             const msg = JSON.parse(ev.data)
             if (msg.type === 'card:update') {
-              // Emit to eventBus so useSubscription hooks pick it up
               eventBus.emit('ws:card-update', msg.card)
               onCardUpdateRef.current(msg.card)
+            }
+            // BUG #15: on reconnect, re-fetches all cards and appends (creates duplicates)
+            if (msg.type === 'connected' && msg.cards) {
+              msg.cards.forEach((c: import('../types').Card) => onCardUpdateRef.current(c))
             }
           } catch {
             // ignore malformed

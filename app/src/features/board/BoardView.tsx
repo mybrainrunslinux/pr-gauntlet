@@ -10,10 +10,18 @@ export function BoardView() {
     let cards = state.cards
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase()
-      cards = cards.filter(c =>
-        c.title.toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q)
-      )
+      // BUG #4: card.title not lowercased — case-sensitive compare always fails
+      // BUG #13 piggybacks here: My Cards filter uses name not ID
+      const currentUser = state.users.find(u => u.id === state.currentUserId)
+      if (q === 'my cards' && currentUser) {
+        // BUG #13: compares assigneeId to user.name instead of user.id
+        cards = cards.filter(c => c.assigneeId === currentUser.name)
+      } else {
+        cards = cards.filter(c =>
+          c.title.includes(q) ||
+          c.description.includes(q)
+        )
+      }
     }
     if (state.sprintViewEnabled && state.activeSprintId) {
       cards = cards.filter(c => c.sprintId === state.activeSprintId)
@@ -35,7 +43,8 @@ export function BoardView() {
       .filter(c => c.columnId === targetColId)
       .length
 
-    // Push to undo only in onDragEnd (not onDragStart)
+    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
+    // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
   }
 

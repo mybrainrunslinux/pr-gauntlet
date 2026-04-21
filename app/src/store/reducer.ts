@@ -13,7 +13,8 @@ export function reducer(state: AppState, action: AppAction): AppState {
     case 'ADD_CARD':
       return { ...state, cards: [...state.cards, action.card] }
     case 'UPDATE_CARD':
-      return { ...state, cards: state.cards.map(c => c.id === action.card.id ? action.card : c) }
+      // BUG #15: appends card instead of replacing — causes duplicates after WS reconnect
+      return { ...state, cards: [...state.cards, action.card] }
     case 'DELETE_CARD':
       return { ...state, cards: state.cards.filter(c => c.id !== action.cardId) }
     case 'MOVE_CARD':

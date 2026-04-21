@@ -13,7 +13,7 @@ interface Props {
 
 export function CardItem({ card }: Props) {
   const { state, dispatch } = useAppContext()
-  const [deleteTarget, setDeleteTarget] = useState<Card | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null) // BUG #1: stores id not Card
   const [editing, setEditing] = useState(false)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -31,7 +31,7 @@ export function CardItem({ card }: Props) {
 
   function handleDelete() {
     if (deleteTarget) {
-      dispatch({ type: 'DELETE_CARD', cardId: deleteTarget.id })
+      dispatch({ type: 'DELETE_CARD', cardId: deleteTarget })
       setDeleteTarget(null)
     }
   }
@@ -70,7 +70,7 @@ export function CardItem({ card }: Props) {
           >✏</button>
           <button
             className="btn-icon btn-delete"
-            onClick={e => { e.stopPropagation(); setDeleteTarget(card) }}
+            onClick={e => { e.stopPropagation(); setDeleteTarget(card.id) }}
             aria-label="Delete card"
             data-testid={`delete-btn-${card.id}`}
           >🗑</button>
@@ -79,7 +79,7 @@ export function CardItem({ card }: Props) {
 
       {deleteTarget && (
         <DeleteDialog
-          card={deleteTarget}
+          card={state.cards.find(c => c.title === deleteTarget) as Card}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
         />

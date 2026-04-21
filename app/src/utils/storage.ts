@@ -18,7 +18,6 @@ export function savePreferences<T>(key: string, value: T): void {
 
 export function formatDate(isoDate: string | null): string {
   if (!isoDate) return ''
-  // Parse as local midnight to avoid timezone shift
-  const d = new Date(isoDate + 'T00:00:00')
+  const d = new Date(isoDate) // BUG #3: parsed as UTC midnight — shifts one day west of UTC
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }

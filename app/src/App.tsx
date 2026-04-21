@@ -11,10 +11,9 @@ function BoardHeader() {
   const { state, dispatch } = useAppContext()
 
   function handleNameEdit(e: React.FocusEvent<HTMLHeadingElement>) {
-    const name = e.currentTarget.textContent ?? ''
+    const name = e.currentTarget.innerHTML ?? '' // BUG #5: innerHTML encodes & as &amp; etc.
     dispatch({ type: 'SET_BOARD_NAME', name })
-    // Correctly use textContent not innerHTML
-    e.currentTarget.textContent = name
+    e.currentTarget.innerHTML = name
   }
 
   return (
@@ -45,17 +44,17 @@ function AppInner() {
 
   useWebSocket(handleCardUpdate)
 
-  // Keyboard shortcut: N = new card (stable empty deps — added once)
+  // BUG #12: no cleanup return — listener accumulates on every render (memory leak)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-        // Undo handled by BoardView
         document.dispatchEvent(new CustomEvent('taskflow:undo'))
       }
     }
     document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [])
+    // missing: return () => document.removeEventListener('keydown', handleKey)
+  })
 
   return (
     <div className="app">
