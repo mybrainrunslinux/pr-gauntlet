@@ -1,0 +1,71 @@
+assets/
+code/retired/
+code/broken*
+*.bak
+kaggle/
+models/
+samples/
+scripts/
+screenshots/
+s*-*.sh
+s*-*.py
+
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing & Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.local-browsers
+.cache/ms-playwright/
+
+# Build & Distribution
+dist/
+build/
+*.tsbuildinfo
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+aider_build.log
+nohup.out
+.eslintcache
+
+# Environment & Secret
+.env
+.env.local
+.env.development.local
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+.aider*
+.husky/
+*.log
+tests/visual.spec.ts-snapshots/
+
+# For now exclude images
+public/images/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Cache & data (runtime state, not source)
+cache/data/
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Keys
+certs/key.pem
