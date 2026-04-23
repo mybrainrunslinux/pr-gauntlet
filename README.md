@@ -22,13 +22,15 @@ Fork the repo, point your agent at `v1-bugged`, and let it work through the issu
 ## Scoring
 
 ```bash
-npx pr-gauntlet score          # scores current branch against all 20 tests
-npx pr-gauntlet score --issue 7  # score a single issue
-npx pr-gauntlet diff           # show diff vs v0-clean
+cd app
+npx ts-node ../scoring/index.ts              # all 20 issues
+npx ts-node ../scoring/index.ts --issue 7   # single issue
+npx ts-node ../scoring/index.ts --json      # machine-readable output
 ```
 
 Or run tests directly:
 ```bash
+cd app
 npm test                       # vitest unit tests
 npm run test:e2e               # playwright end-to-end
 ```

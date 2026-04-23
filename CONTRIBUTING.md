@@ -17,7 +17,9 @@ npm run dev                      # app on :5173, WS on :3001
 3. **Run your agent** against the 20 issues in `issues/`
 4. **Score locally** before submitting:
    ```bash
-   cd app && npx ts-node ../scoring/index.ts
+   cd app
+   npx ts-node ../scoring/index.ts
+   npx ts-node ../scoring/index.ts --json    # machine-readable
    ```
 5. **Open a PR** against `v1-bugged` — CI will score automatically and post a comment
 
