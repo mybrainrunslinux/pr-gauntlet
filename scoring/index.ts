@@ -42,18 +42,32 @@ const ISSUES: Array<{ id: number; title: string; tier: number; testFilter: strin
 ]
 
 function runTest(filter: string): { passed: boolean; error?: string } {
+  let stdout = ''
+  let stderr = ''
+  let exitCode = 0
   try {
-    execSync(`npm run test -- --reporter=verbose --testNamePattern="${filter}"`, {
-      cwd: APP,
-      stdio: 'pipe',
-      timeout: 30000,
-    })
-    return { passed: true }
+    const out = execSync(
+      `npm run test -- --reporter=verbose --testNamePattern="${filter}"`,
+      { cwd: APP, timeout: 30000, stdio: 'pipe' }
+    )
+    stdout = out.toString()
   } catch (e: any) {
-    const output = e.stdout?.toString() || e.message || ''
-    const failing = output.match(/×[^\n]*/)?.[0] || 'test failed'
+    stdout = e.stdout?.toString() ?? ''
+    stderr = e.stderr?.toString() ?? ''
+    exitCode = e.status ?? 1
+  }
+
+  // Require at least 1 real test to have passed — vacuous pass (0 tests found) does not count
+  const passMatch = stdout.match(/(\d+)\s+passed/)
+  const passCount = passMatch ? parseInt(passMatch[1], 10) : 0
+  if (passCount === 0) {
+    return { passed: false, error: 'no tests written for this issue' }
+  }
+  if (exitCode !== 0) {
+    const failing = stdout.match(/×[^\n]*/)?.[0] ?? stderr.split('\n')[0] ?? 'test failed'
     return { passed: false, error: failing.trim() }
   }
+  return { passed: true }
 }
 
 function score(issueId?: number, asJson = false) {
