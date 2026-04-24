@@ -78,4 +78,4 @@ ${rows}
               body
             });
         env:
-          SCORE_JSON: ${{ steps.score.outputs.result }}
+          SCORE_JSON: "${{ steps.score.outputs.result }}"
