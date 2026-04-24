@@ -15,11 +15,11 @@ export function BoardView() {
       const currentUser = state.users.find(u => u.id === state.currentUserId)
       if (q === 'my cards' && currentUser) {
         // BUG #13: compares assigneeId to user.name instead of user.id
-        cards = cards.filter(c => c.assigneeId === currentUser.name)
+        cards = cards.filter(c => c.assigneeId === currentUser.id)
       } else {
         cards = cards.filter(c =>
-          c.title.includes(q) ||
-          c.description.includes(q)
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q)
         )
       }
     }
@@ -45,7 +45,7 @@ export function BoardView() {
 
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
     // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
-    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
+    // Fixed: removed duplicate dispatch
   }
 
   return (

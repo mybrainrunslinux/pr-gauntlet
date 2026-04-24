@@ -1,3 +1,4 @@
+// src/hooks/useCardStats.ts
 import { useMemo } from 'react'
 import { useSubscription } from './useSubscription'
 import { eventBus } from '../utils/eventBus'
@@ -5,7 +6,7 @@ import type { Card, Column } from '../types'
 
 export function useCardStats(cards: Card[], columns: Column[]) {
   const stats = useMemo(() => {
-    const doneCol = columns.find(c => c.id === 'done') // BUG #9: wrong ID — 'done' not 'col-done' → always 0 done cards
+    const doneCol = columns.find(c => c.id === 'col-done') // FIXED: correct ID for done column
     const doneCards = doneCol ? cards.filter(c => c.columnId === doneCol.id) : []
     const total = cards.length
     const done = doneCards.length
