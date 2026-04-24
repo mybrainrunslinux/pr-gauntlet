@@ -3,6 +3,8 @@ name: PR-Gauntlet Score
 on:
   pull_request:
     branches: [v1-bugged]
+  push:
+    branches: [v1-bugged]
 
 jobs:
   score:
@@ -20,10 +22,6 @@ jobs:
         run: npm ci
         working-directory: app
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-        working-directory: app
-
       - name: Run scorer
         id: score
         run: |
@@ -35,11 +33,19 @@ jobs:
           echo "final=$FINAL" >> $GITHUB_OUTPUT
         working-directory: app
 
-      - name: Post score comment
+      - name: Score summary (push)
+        if: github.event_name == 'push'
+        run: |
+          echo "### PR-Gauntlet Score: ${{ steps.score.outputs.final }}/110" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.ref_name }}\` @ \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post score comment (PR only)
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const result = JSON.parse(`${{ steps.score.outputs.result }}`);
+            const result = JSON.parse(process.env.SCORE_JSON);
             const { fixed, total, baseScore, chainBonus, finalScore, results } = result;
 
             const tierEmoji = { 1: '🟢', 2: '🟡', 3: '🟠', 4: '🔴' };
@@ -63,7 +69,7 @@ ${chainNote}
 |---|-------|------|--------|
 ${rows}
 
-*Run \`npx pr-gauntlet score\` locally to debug individual issues.*`;
+*Run \`npx ts-node ../scoring/index.ts\` locally to debug individual issues.*`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -71,3 +77,5 @@ ${rows}
               repo: context.repo.repo,
               body
             });
+        env:
+          SCORE_JSON: ${{ steps.score.outputs.result }}
