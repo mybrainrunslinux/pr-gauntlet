@@ -9,9 +9,9 @@ export function LabelPicker({ selected, onChange }: Props) {
   const { state } = useAppContext()
 
   function toggle(labelId: string) {
-    // BUG #6: passes label object to includes() — object ref never matches stored ID string
-    const label = state.labels.find(l => l.id === labelId)!
-    if ((selected as unknown[]).includes(label)) {
+    // BUG #6: was passing label object to includes() — object ref never matches stored ID string
+    // Fixed: check if labelId is in selected array using string comparison
+    if (selected.includes(labelId)) {
       onChange(selected.filter(id => id !== labelId))
     } else {
       onChange([...selected, labelId])

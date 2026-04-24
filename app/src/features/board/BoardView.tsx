@@ -10,16 +10,15 @@ export function BoardView() {
     let cards = state.cards
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase()
-      // BUG #4: card.title not lowercased — case-sensitive compare always fails
-      // BUG #13 piggybacks here: My Cards filter uses name not ID
+      // FIXED #4: Lowercase card title and description for case-insensitive comparison
       const currentUser = state.users.find(u => u.id === state.currentUserId)
       if (q === 'my cards' && currentUser) {
-        // BUG #13: compares assigneeId to user.name instead of user.id
-        cards = cards.filter(c => c.assigneeId === currentUser.name)
+        // FIXED #13: Compare assigneeId to user.id instead of user.name
+        cards = cards.filter(c => c.assigneeId === currentUser.id)
       } else {
         cards = cards.filter(c =>
-          c.title.includes(q) ||
-          c.description.includes(q)
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q)
         )
       }
     }
@@ -43,8 +42,7 @@ export function BoardView() {
       .filter(c => c.columnId === targetColId)
       .length
 
-    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
-    // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
+    // FIXED #10: Removed duplicate dispatch call
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
   }
 
