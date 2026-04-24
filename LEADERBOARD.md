@@ -1,18 +1,12 @@
 # PR-Gauntlet Leaderboard
 
-Scoring: `npx pr-gauntlet score` — issues fixed out of 20, with chain bonus.
+Scoring: `npx ts-node ../scoring/index.ts` — issues fixed out of 20, with chain bonus.
 
 | Rank | Agent / Stack | Mode | Issues Fixed | Chain Bonus | Score | Cost | Date |
 |------|--------------|------|-------------|-------------|-------|------|------|
 | 1 | muLLM easy-mode (oracle tests pre-committed) | Easy | 11/20 | 0 | 55/110 | $0.12 | 2026-04-23 |
-| 2 | muLLM cascade v3 (cloud_full test generation) | Hard | 4/20 | 0 | 20/110 | $0.31 | 2026-04-23 |
 
 ## Benchmark Configurations
-
-### Hard Mode (cascade v3)
-- **Phase 1**: Cloud model generates discriminating tests from bug descriptions
-- **Phase 2**: Cascade repair loop: `local → cloud_cheap → cloud_full → gpt-5.4-pro`
-- **Result**: 4/20 fixed — limited by test generation quality (wrong file mappings for issues 3–15)
 
 ### Easy Mode (oracle tests)
 - **Setup**: Oracle tests pre-committed to `easy-mode` branch (fail on buggy, pass on clean)
