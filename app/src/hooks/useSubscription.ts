@@ -1,16 +1,34 @@
-import { useEffect } from 'react'
+// src/hooks/useSubscription.ts
+import { useEffect, useRef } from 'react'
 import { eventBus } from '../utils/eventBus'
 
-// BUG #19 (root of chain 16–20):
-// 1. No cleanup return — handlers accumulate every call (memory leak)
-// 2. handler is a new ref each render — re-registers on every render
-// This single bug causes: #19 heap growth, #18 stale state, #17 race, #16 perf, #20 crash
 export function useSubscription<T>(
   topic: string,
   handler: (data: T) => void
 ): void {
+  // Keep a stable reference to the latest handler
+  const handlerRef = useRef(handler)
+  
+  // Always update ref to latest handler (no re-renders triggered)
+  handlerRef.current = handler
+  
+  // Create a stable wrapper function that never changes reference
+  const stableHandlerRef = useRef<(data: T) => void>()
+  if (!stableHandlerRef.current) {
+    stableHandlerRef.current = (data: T) => {
+      handlerRef.current(data)
+    }
+  }
+  
   useEffect(() => {
-    eventBus.subscribe(topic, handler)
-    // MISSING: return () => eventBus.unsubscribe(topic, handler)
-  }, [topic, handler])
+    const stableHandler = stableHandlerRef.current!
+    
+    // Subscribe with truly stable handler reference
+    eventBus.subscribe(topic, stableHandler)
+    
+    // Cleanup subscription on topic change or unmount
+    return () => {
+      eventBus.unsubscribe(topic, stableHandler)
+    }
+  }, [topic]) // Only depend on topic, never on handler
 }
