@@ -74,3 +74,4 @@ describe('useSubscription (chain primitive)', () => {
     expect(h1).not.toHaveBeenCalled()
   })
 })
+

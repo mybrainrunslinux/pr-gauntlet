@@ -1,3 +1,4 @@
+// src/features/board/BoardView.tsx
 import { useMemo } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { useAppContext } from '../../store/AppContext'
@@ -15,7 +16,8 @@ export function BoardView() {
       const currentUser = state.users.find(u => u.id === state.currentUserId)
       if (q === 'my cards' && currentUser) {
         // BUG #13: compares assigneeId to user.name instead of user.id
-        cards = cards.filter(c => c.assigneeId === currentUser.name)
+        // FIXED: use currentUser.id instead of currentUser.name
+        cards = cards.filter(c => c.assigneeId === currentUser.id)
       } else {
         cards = cards.filter(c =>
           c.title.includes(q) ||
@@ -45,7 +47,7 @@ export function BoardView() {
 
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
     // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
-    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
+    // FIXED: removed duplicate dispatch
   }
 
   return (
