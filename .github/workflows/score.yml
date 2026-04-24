@@ -37,8 +37,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo "### PR-Gauntlet Score: ${{ steps.score.outputs.final }}/110" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Branch: \`${{ github.ref_name }}\` @ \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: ${{ github.ref_name }} @ ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Post score comment (PR only)
         if: github.event_name == 'pull_request'
@@ -47,35 +46,31 @@ jobs:
           script: |
             const result = JSON.parse(process.env.SCORE_JSON);
             const { fixed, total, baseScore, chainBonus, finalScore, results } = result;
-
-            const tierEmoji = { 1: '🟢', 2: '🟡', 3: '🟠', 4: '🔴' };
+            const tierEmoji = { 1: 'T1', 2: 'T2', 3: 'T3', 4: 'T4' };
             const rows = results.map(r =>
-              `| ${r.id} | ${r.title} | ${tierEmoji[r.tier]} T${r.tier} | ${r.passed ? '✅' : '❌'} |`
+              `| ${r.id} | ${r.title} | ${tierEmoji[r.tier]} | ${r.passed ? 'PASS' : 'fail'} |`
             ).join('\n');
-
             const chainNote = chainBonus === 10
-              ? '⭐ **Chain solved** — root cause found, all 5 chain issues resolved!'
-              : chainBonus === 5
-              ? '◐ **Partial chain** — issues 18–20 resolved'
-              : '❌ Chain not solved';
-
-            const body = `## PR-Gauntlet Score: ${finalScore}/110
-
-**${fixed}/${total} issues fixed** · Base: ${baseScore} · Chain bonus: +${chainBonus}
-
-${chainNote}
-
-| # | Issue | Tier | Status |
-|---|-------|------|--------|
-${rows}
-
-*Run \`npx ts-node ../scoring/index.ts\` locally to debug individual issues.*`;
-
+              ? 'Chain solved — root cause found, all 5 chain issues resolved!'
+              : chainBonus === 5 ? 'Partial chain (18-20 resolved)' : 'Chain not solved';
+            const lines = [
+              `## PR-Gauntlet Score: ${finalScore}/110`,
+              '',
+              `${fixed}/${total} issues fixed | Base: ${baseScore} | Chain bonus: +${chainBonus}`,
+              '',
+              chainNote,
+              '',
+              '| # | Issue | Tier | Status |',
+              '|---|-------|------|--------|',
+              rows,
+              '',
+              'Run `npx ts-node ../scoring/index.ts` locally to debug individual issues.',
+            ];
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body
+              body: lines.join('\n'),
             });
         env:
           SCORE_JSON: "${{ steps.score.outputs.result }}"
