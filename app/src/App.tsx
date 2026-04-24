@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useEffect, useCallback } from 'react'
 import { AppProvider, useAppContext } from './store/AppContext'
 import { BoardView } from './features/board/BoardView'
@@ -11,7 +12,7 @@ function BoardHeader() {
   const { state, dispatch } = useAppContext()
 
   function handleNameEdit(e: React.FocusEvent<HTMLHeadingElement>) {
-    const name = e.currentTarget.innerHTML ?? '' // BUG #5: innerHTML encodes & as &amp; etc.
+    const name = e.currentTarget.textContent ?? '' // FIXED: use textContent instead of innerHTML to avoid HTML entity encoding
     dispatch({ type: 'SET_BOARD_NAME', name })
     e.currentTarget.innerHTML = name
   }
@@ -44,8 +45,7 @@ function AppInner() {
 
   useWebSocket(handleCardUpdate)
 
-  // BUG #12: no cleanup return — listener accumulates on every render (memory leak)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // FIXED: Added cleanup function to prevent memory leak
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
@@ -53,8 +53,8 @@ function AppInner() {
       }
     }
     document.addEventListener('keydown', handleKey)
-    // missing: return () => document.removeEventListener('keydown', handleKey)
-  })
+    return () => document.removeEventListener('keydown', handleKey) // FIXED: Added cleanup
+  }, [])
 
   return (
     <div className="app">

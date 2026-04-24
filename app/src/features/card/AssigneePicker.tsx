@@ -1,3 +1,4 @@
+// src/features/card/AssigneePicker.tsx
 import { useAppContext } from '../../store/AppContext'
 
 interface Props {
@@ -13,12 +14,11 @@ export function AssigneePicker({ value, onChange }: Props) {
       Assignee
       <select
         value={value ?? ''}
-        onChange={e => onChange(state.users[e.target.selectedIndex - 1]?.id ?? null)} // BUG #8: uses index not value
+        onChange={e => onChange(e.target.value || null)}
         data-testid="assignee-select"
       >
         <option value="">Unassigned</option>
         {state.users.map(u => (
-          // Use user.id as value — not index
           <option key={u.id} value={u.id}>{u.name}</option>
         ))}
       </select>

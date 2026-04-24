@@ -1,3 +1,4 @@
+// src/features/board/Column.tsx
 import { useMemo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -12,7 +13,7 @@ interface Props {
 export function Column({ column, cards }: Props) {
   const { setNodeRef } = useDroppable({ id: column.id })
 
-  const count = useMemo(() => cards.length, []) // BUG #2: empty deps — count never updates
+  const count = useMemo(() => cards.length, [cards]) // FIXED: added cards to dependencies
 
   const sortedCards = useMemo(
     () => [...cards].sort((a, b) => a.order - b.order),

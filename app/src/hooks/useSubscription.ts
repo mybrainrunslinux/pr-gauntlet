@@ -1,16 +1,39 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { eventBus } from '../utils/eventBus'
 
-// BUG #19 (root of chain 16–20):
-// 1. No cleanup return — handlers accumulate every call (memory leak)
-// 2. handler is a new ref each render — re-registers on every render
-// This single bug causes: #19 heap growth, #18 stale state, #17 race, #16 perf, #20 crash
 export function useSubscription<T>(
   topic: string,
   handler: (data: T) => void
 ): void {
+  // Stabilize handler reference to prevent re-registering on every render
+  const stableHandler = useCallback(handler, [handler])
+  
+  // Track if subscription is active to prevent double cleanup
+  const subscriptionRef = useRef<boolean>(false)
+
   useEffect(() => {
-    eventBus.subscribe(topic, handler)
-    // MISSING: return () => eventBus.unsubscribe(topic, handler)
-  }, [topic, handler])
+    // Only subscribe if not already subscribed
+    if (!subscriptionRef.current) {
+      eventBus.subscribe(topic, stableHandler)
+      subscriptionRef.current = true
+    }
+
+    // Cleanup: unsubscribe when topic changes or component unmounts
+    return () => {
+      if (subscriptionRef.current) {
+        eventBus.unsubscribe(topic, stableHandler)
+        subscriptionRef.current = false
+      }
+    }
+  }, [topic, stableHandler])
+
+  // Cleanup on unmount (defensive)
+  useEffect(() => {
+    return () => {
+      if (subscriptionRef.current) {
+        eventBus.unsubscribe(topic, stableHandler)
+        subscriptionRef.current = false
+      }
+    }
+  }, [])
 }
