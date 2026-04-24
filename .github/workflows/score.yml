@@ -25,7 +25,7 @@ jobs:
       - name: Run scorer
         id: score
         run: |
-          RESULT=$(npx ts-node ../scoring/index.ts --json 2>&1)
+          RESULT=$(npx ts-node --project ../scoring/tsconfig.json ../scoring/index.ts --json 2>&1)
           JSON=$(echo "$RESULT" | python3 -c "import sys; t=sys.stdin.read(); s=t.find('{'); print(t[s:].strip() if s>=0 else '{}')")
           echo "result<<EOF" >> $GITHUB_OUTPUT
           echo "$JSON" >> $GITHUB_OUTPUT
