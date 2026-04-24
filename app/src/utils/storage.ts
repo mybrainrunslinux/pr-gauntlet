@@ -18,6 +18,20 @@ export function savePreferences<T>(key: string, value: T): void {
 
 export function formatDate(isoDate: string | null): string {
   if (!isoDate) return ''
-  const d = new Date(isoDate) // BUG #3: parsed as UTC midnight — shifts one day west of UTC
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  
+  // Parse ISO date string (YYYY-MM-DD) by extracting components
+  // This avoids UTC midnight interpretation that shifts dates west of UTC
+  const [yearStr, monthStr, dayStr] = isoDate.split('-')
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10) - 1 // Date constructor uses 0-indexed months
+  const day = parseInt(dayStr, 10)
+  
+  // Create date using local time (not UTC)
+  const date = new Date(year, month, day)
+  
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  })
 }
