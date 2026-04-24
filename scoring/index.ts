@@ -106,5 +106,5 @@ const issueFlag = args.indexOf('--issue')
 const issueId = issueFlag >= 0 ? parseInt(args[issueFlag + 1]) : undefined
 const asJson = args.includes('--json')
 
-console.log('\npr-gauntlet scorer\n')
+if (!asJson) console.log('\npr-gauntlet scorer\n')
 score(issueId, asJson)
