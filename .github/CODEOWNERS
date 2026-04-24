@@ -1,0 +1,4 @@
+# Leaderboard, CI workflow, and scorer are owner-only
+LEADERBOARD.md @mybrainrunslinux
+.github/ @mybrainrunslinux
+scoring/ @mybrainrunslinux
