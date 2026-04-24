@@ -1,3 +1,4 @@
+// src/features/card/LabelPicker.tsx
 import { useAppContext } from '../../store/AppContext'
 
 interface Props {
@@ -9,9 +10,8 @@ export function LabelPicker({ selected, onChange }: Props) {
   const { state } = useAppContext()
 
   function toggle(labelId: string) {
-    // BUG #6: passes label object to includes() — object ref never matches stored ID string
-    const label = state.labels.find(l => l.id === labelId)!
-    if ((selected as unknown[]).includes(label)) {
+    // FIXED: check if labelId (string) is in selected array (string[])
+    if (selected.includes(labelId)) {
       onChange(selected.filter(id => id !== labelId))
     } else {
       onChange([...selected, labelId])
