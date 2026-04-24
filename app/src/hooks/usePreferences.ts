@@ -1,3 +1,4 @@
+// src/hooks/usePreferences.ts
 import { useState, useEffect } from 'react'
 import { loadPreferences, savePreferences } from '../utils/storage'
 
@@ -20,24 +21,18 @@ export function usePreferences() {
     loadPreferences('taskflow:prefs', DEFAULTS)
   )
 
-  // BUG #11: visibilitychange handler captures stale prefs in closure
+  // Fixed: Save preferences whenever they change
   useEffect(() => {
-    function onVisibility() {
-      if (document.visibilityState === 'visible') {
-        // Reads from closure — will overwrite newer changes with older prefs
-        savePreferences('taskflow:prefs', prefs)
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
+    savePreferences('taskflow:prefs', prefs)
   }, [prefs])
 
   function setPrefs(update: Partial<Preferences>) {
-    // BUG #11: reads stale `prefs` from closure — tab switch triggers visibilitychange
-    // which overwrites with stale saved value, reverting recent changes
-    const next = { ...prefs, ...update }
-    savePreferences('taskflow:prefs', next)
-    setPrefsState(next)
+    // Fixed: Use functional update to ensure we're working with the latest state
+    setPrefsState(prev => {
+      const next = { ...prev, ...update }
+      savePreferences('taskflow:prefs', next)
+      return next
+    })
   }
 
   return { prefs, setPrefs }

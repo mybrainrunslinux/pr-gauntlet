@@ -1,18 +1,23 @@
+// src/features/filters/SprintSelector.tsx
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../../store/AppContext'
 import type { Sprint } from '../../types'
 
 export function SprintSelector() {
   const { state, dispatch } = useAppContext()
-  // BUG #7: initialized from sprints[0] (first sprint, not active); useEffect never fires when same ref
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(state.sprints[0] ?? null)
+  
+  // Find the currently active sprint instead of defaulting to first sprint
+  const getActiveSprint = () => state.sprints.find(s => s.active) ?? null
+  const [activeSprint, setActiveSprint] = useState<Sprint | null>(getActiveSprint())
 
   useEffect(() => {
-    // Bug: only runs if sprints reference changes, but seed data is stable
-    const found = state.sprints[0] ?? null
+    // Find and set the active sprint on mount and when sprints change
+    const found = getActiveSprint()
     setActiveSprint(found)
-    if (found) dispatch({ type: 'SET_ACTIVE_SPRINT', sprintId: found.id })
-  }, [])
+    if (found) {
+      dispatch({ type: 'SET_ACTIVE_SPRINT', sprintId: found.id })
+    }
+  }, [state.sprints, dispatch])
 
   return (
     <div className="sprint-controls">

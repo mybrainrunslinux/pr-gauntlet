@@ -1,3 +1,4 @@
+// src/features/board/BoardView.tsx
 import { useMemo } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { useAppContext } from '../../store/AppContext'
@@ -43,8 +44,7 @@ export function BoardView() {
       .filter(c => c.columnId === targetColId)
       .length
 
-    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
-    // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
+    // Fixed: removed duplicate dispatch call
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
   }
 
