@@ -2,6 +2,8 @@
 
 Scoring: `npx ts-node ../scoring/index.ts` — issues fixed out of 20, with chain bonus.
 
+> **Top 10 only** — full submission history is in the Benchmark Configurations section below. Once we exceed 10 entries, older results are archived there and only the top 10 by score (tiebreak: lower cost) stay in the main table.
+
 | Rank | Agent / Stack | Mode | Issues Fixed | Chain Bonus | Score | Cost | Date |
 |------|--------------|------|-------------|-------------|-------|------|------|
 | 1 | muLLM hard-mode v6 (write tests + fix) | Hard | 20/20 | +10 | 110/110 | $0.45 | 2026-04-25 |
@@ -54,30 +56,31 @@ Scoring: `npx ts-node ../scoring/index.ts` — issues fixed out of 20, with chai
 - Issues fixed: #01 #02 #03 #04 #07 #09 #11 #12 #13 #14 #15
 - Issues not fixed: #05 #06 #08 #10 #16–#20 (chain)
 
-## Issue Difficulty Breakdown
+## Issue Difficulty Reference
 
-| # | Issue | Difficulty | muLLM v6 | CC Auto | CC Struct | muLLM v5 | muLLM v4 | Easy |
-|---|-------|-----------|---------|---------|-----------|----------|----------|------|
-| 01 | delete-dialog | T1 | PASS | PASS | PASS | PASS | PASS | PASS |
-| 02 | column-badge | T1 | PASS | PASS | PASS | PASS | PASS | PASS |
-| 03 | date-timezone | T1 | PASS | PASS | timeout | PASS | fail | PASS |
-| 04 | search-case | T1 | PASS | PASS | PASS | PASS | PASS | PASS |
-| 05 | board-name | T1 | PASS | PASS | fail | PASS | fail | fail |
-| 06 | label-persist | T2 | PASS | PASS | PASS | PASS | PASS | fail |
-| 07 | sprint-view | T2 | PASS | fail | fail | PASS | fail | PASS |
-| 08 | user-assign | T2 | PASS | timeout | timeout | PASS | PASS | fail |
-| 09 | completion-pct | T2 | PASS | PASS | PASS | PASS | PASS | PASS |
-| 10 | undo-single | T2 | PASS | PASS | fail | PASS | fail | fail |
-| 11 | tab-switch | T3 | PASS | timeout | timeout | PASS | fail | PASS |
-| 12 | listener-leak | T3 | PASS | PASS | PASS | PASS | PASS | PASS |
-| 13 | my-cards | T3 | PASS | PASS | fail | PASS | PASS | PASS |
-| 14 | prefs-persist | T3 | PASS | timeout | timeout | PASS | PASS | PASS |
-| 15 | no-duplicates | T3 | PASS | timeout | timeout | PASS | fail | PASS |
-| 16 | chain-stats | T4 | PASS | PASS | PASS | PASS | PASS | fail |
-| 17 | chain-race | T4 | PASS | timeout | fail | PASS | PASS | fail |
-| 18 | chain-stale | T4 | PASS | timeout | PASS | PASS | PASS | fail |
-| 19 | chain-leak | T4 | PASS | PASS | fail | PASS | PASS | fail |
-| 20 | chain-crash | T4 | PASS | timeout | fail | PASS | PASS | fail |
+This table is frozen — it shows the canonical difficulty tier for each issue.
+Per-submission results are in the Configurations section above; we don't add a column per submission (doesn't scale).
+
+| # | Issue | Difficulty | Canonical Fix Area |
+|---|-------|-----------|-------------------|
+| 01 | delete-dialog | T1 | React state (onClick handler) |
+| 02 | column-badge | T1 | Computed badge label |
+| 03 | date-timezone | T1 | Date formatting (UTC→local) |
+| 04 | search-case | T1 | String comparison (case-insensitive) |
+| 05 | board-name | T1 | Board rename commit |
+| 06 | label-persist | T2 | Label save → re-render |
+| 07 | sprint-view | T2 | Sprint filter predicate |
+| 08 | user-assign | T2 | Assignee state update |
+| 09 | completion-pct | T2 | Completion % calculation |
+| 10 | undo-single | T2 | Undo stack — shared file |
+| 11 | tab-switch | T3 | Tab state isolation |
+| 12 | listener-leak | T3 | useEffect cleanup |
+| 13 | my-cards | T3 | My Cards filter — shared file |
+| 14 | prefs-persist | T3 | Preferences localStorage key |
+| 15 | no-duplicates | T3 | Dedup on card add |
+| 16–20 | useSubscription chain | T4 | Single missing unsubscribe call |
+
+Solved rates across all runs to date: T1 91%, T2 76%, T3 72%, T4 60% (chain full 3/5 runs).
 
 ## Speed Comparison
 
