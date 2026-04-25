@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -68,12 +69,108 @@ jobs:
               rows,
               '',
               'Run `npx ts-node ../scoring/index.ts` locally to debug individual issues.',
+              '',
+              '_PRs are scored but not merged — `v1-bugged` stays frozen as the benchmark baseline._',
             ];
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: lines.join('\n'),
+            });
+        env:
+          SCORE_JSON: "${{ steps.score.outputs.result }}"
+
+      - name: Update leaderboard (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const finalScore = parseInt('${{ steps.score.outputs.final }}');
+            if (finalScore < 30) return; // skip trivial scores
+
+            const result = JSON.parse(process.env.SCORE_JSON);
+            const { fixed, total, chainBonus } = result;
+
+            const agent = context.payload.pull_request.head.ref;
+            const date = new Date().toISOString().split('T')[0];
+            const issueStr = `${fixed}/${total}`;
+            const chainStr = chainBonus > 0 ? `+${chainBonus}` : '0';
+            const scoreStr = `${finalScore}/110`;
+
+            // Fetch current LEADERBOARD.md from v1-bugged
+            let fileData;
+            try {
+              ({ data: fileData } = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: 'LEADERBOARD.md',
+                ref: 'v1-bugged',
+              }));
+            } catch (e) {
+              console.log('Could not fetch LEADERBOARD.md:', e.message);
+              return;
+            }
+
+            const current = Buffer.from(fileData.content, 'base64').toString('utf8');
+
+            // Parse the main leaderboard table (first table block)
+            const tableRe = /(\| Rank \|[^\n]+\n\|[-| ]+\|)((?:\n\|[^\n]+)*)/;
+            const match = current.match(tableRe);
+            if (!match) { console.log('Table not found in LEADERBOARD.md'); return; }
+
+            const existingRows = match[2].trim().split('\n').filter(r => r.trim().startsWith('|'));
+            const parseScore = row => {
+              const cols = row.split('|').map(c => c.trim()).filter(Boolean);
+              // Score is column index 5 (0-based): Rank(0) Agent(1) Mode(2) Fixed(3) Chain(4) Score(5) Cost(6) Date(7)
+              const scoreCol = cols[5] || '';
+              return parseInt(scoreCol.split('/')[0]) || 0;
+            };
+
+            const scores = existingRows.map(parseScore);
+            const wouldRank = scores.filter(s => s > finalScore).length + 1;
+
+            if (wouldRank > 10) {
+              console.log(`Score ${finalScore} would rank #${wouldRank} — outside top 10, skipping leaderboard update`);
+              return;
+            }
+
+            // Build new row and insert at correct position
+            const newRow = `| ${wouldRank} | ${agent} | Hard | ${issueStr} | ${chainStr} | ${scoreStr} | — | ${date} |`;
+            const before = existingRows.slice(0, wouldRank - 1);
+            const after  = existingRows.slice(wouldRank - 1);
+            const reranked = [...before, newRow, ...after]
+              .slice(0, 10) // keep top 10
+              .map((row, i) => row.replace(/^\| \d+/, `| ${i + 1}`));
+
+            const updatedTable = match[1] + '\n' + reranked.join('\n');
+            const updated = current.replace(tableRe, updatedTable);
+
+            if (updated === current) { console.log('No change needed'); return; }
+
+            // Commit back to v1-bugged using the API (SHA-locked, race-safe)
+            try {
+              await github.rest.repos.createOrUpdateFileContents({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: 'LEADERBOARD.md',
+                message: `leaderboard: ${agent} scores ${scoreStr} (rank #${wouldRank})`,
+                content: Buffer.from(updated).toString('base64'),
+                sha: fileData.sha,
+                branch: 'v1-bugged',
+              });
+              console.log(`Leaderboard updated — ${agent} entered at rank #${wouldRank}`);
+            } catch (e) {
+              console.log('Leaderboard update failed (possible race):', e.message);
+              return;
+            }
+
+            // Celebrate on the PR
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `**Leaderboard:** \`${agent}\` entered at **rank #${wouldRank}** with **${scoreStr}**! View the [leaderboard](../blob/v1-bugged/LEADERBOARD.md).`,
             });
         env:
           SCORE_JSON: "${{ steps.score.outputs.result }}"
