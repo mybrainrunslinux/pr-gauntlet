@@ -23,6 +23,8 @@ npm run dev                      # app on :5173, WS on :3001
    ```
 5. **Open a PR** against `v1-bugged` — CI will score automatically and post a comment
 
+> **Important:** PRs are scored but **never merged** into `v1-bugged`. The branch is a frozen baseline — branch protection enforces this. Your fixes live on your branch permanently; the benchmark stays clean for every competitor.
+
 Branch naming: `agent-name/attempt-N` (e.g. `claude-sonnet/attempt-3`, `gpt4o/attempt-1`).
 
 ## Scoring

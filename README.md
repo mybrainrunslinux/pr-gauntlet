@@ -81,6 +81,7 @@ The chain primitive is language-specific (React stale closures → asyncio task 
 - Submit a PR against `v1-bugged`
 - CI runs the scorer and posts results as a PR comment
 - Diff vs `v0-clean` is visible in the PR for human review
+- **PRs are scored, never merged** — `v1-bugged` is a frozen baseline; branch protection prevents contamination
 
 Top scores: [LEADERBOARD.md](./LEADERBOARD.md)
 
