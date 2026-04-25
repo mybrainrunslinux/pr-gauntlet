@@ -88,7 +88,7 @@ function score(issueId?: number, asJson = false) {
   const chainPartial = [18, 19, 20].every(id => results.find(r => r.id === id)?.passed)
   const chainBonus = chainAll ? 10 : chainPartial ? 5 : 0
   const baseScore = Math.round((fixed / total) * 100)
-  const finalScore = Math.min(100, baseScore + chainBonus)
+  const finalScore = Math.min(110, baseScore + chainBonus)
 
   if (asJson) {
     console.log(JSON.stringify({ fixed, total, baseScore, chainBonus, finalScore, results }, null, 2))
