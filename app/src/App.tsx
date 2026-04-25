@@ -12,9 +12,9 @@ function BoardHeader() {
   const { state, dispatch } = useAppContext()
 
   function handleNameEdit(e: React.FocusEvent<HTMLHeadingElement>) {
-    const name = e.currentTarget.innerHTML ?? '' // BUG #5: innerHTML encodes & as &amp; etc.
+    const name = e.currentTarget.textContent ?? ''
     dispatch({ type: 'SET_BOARD_NAME', name })
-    e.currentTarget.innerHTML = name
+    e.currentTarget.textContent = name
   }
 
   return (
