@@ -9,10 +9,10 @@ import type { Card } from '../../src/types'
 function filterCardsByQuery(cards: Card[], searchQuery: string): Card[] {
   if (!searchQuery) return cards
   const q = searchQuery.toLowerCase()
-  // This is the buggy implementation copied from BoardView.tsx lines 20-22
+  // Fixed: lowercase card fields before comparing so search is case-insensitive
   return cards.filter(c =>
-    c.title.includes(q) ||
-    c.description.includes(q)
+    c.title.toLowerCase().includes(q) ||
+    (c.description ?? '').toLowerCase().includes(q)
   )
 }
 

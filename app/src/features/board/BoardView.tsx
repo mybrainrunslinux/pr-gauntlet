@@ -18,8 +18,8 @@ export function BoardView() {
         cards = cards.filter(c => c.assigneeId === currentUser.name)
       } else {
         cards = cards.filter(c =>
-          c.title.includes(q) ||
-          c.description.includes(q)
+          c.title.toLowerCase().includes(q) ||
+          (c.description ?? '').toLowerCase().includes(q)
         )
       }
     }
