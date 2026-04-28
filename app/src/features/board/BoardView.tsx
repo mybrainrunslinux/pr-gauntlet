@@ -44,8 +44,6 @@ export function BoardView() {
       .length
 
     dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
-    // BUG #10: dispatch called twice — second dispatch queues duplicate undo entry
-    dispatch({ type: 'MOVE_CARD', cardId, columnId: targetColId, order: cardsInTarget })
   }
 
   return (

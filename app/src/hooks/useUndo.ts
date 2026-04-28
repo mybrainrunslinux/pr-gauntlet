@@ -6,6 +6,7 @@ export function useUndo<T>(initialState: T) {
   const [future, setFuture] = useState<T[]>([])
 
   const push = useCallback((newState: T) => {
+    if (JSON.stringify(newState) === JSON.stringify(current)) return
     setHistory(prev => [...prev, current])
     setCurrent(newState)
     setFuture([])
