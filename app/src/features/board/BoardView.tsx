@@ -15,7 +15,7 @@ export function BoardView() {
       const currentUser = state.users.find(u => u.id === state.currentUserId)
       if (q === 'my cards' && currentUser) {
         // BUG #13: compares assigneeId to user.name instead of user.id
-        cards = cards.filter(c => c.assigneeId === currentUser.name)
+        cards = cards.filter(c => c.assigneeId === currentUser.id)
       } else {
         cards = cards.filter(c =>
           c.title.toLowerCase().includes(q) ||
