@@ -44,8 +44,6 @@ export function AppInner() {
 
   useWebSocket(handleCardUpdate)
 
-  // BUG #12: no cleanup return — listener accumulates on every render (memory leak)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
@@ -53,8 +51,8 @@ export function AppInner() {
       }
     }
     document.addEventListener('keydown', handleKey)
-    // missing: return () => document.removeEventListener('keydown', handleKey)
-  })
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [])
 
   return (
     <div className="app">
