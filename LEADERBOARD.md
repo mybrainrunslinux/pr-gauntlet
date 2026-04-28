@@ -6,12 +6,13 @@ Scoring: `npx ts-node ../scoring/index.ts` — issues fixed out of 20, with chai
 
 | Rank | Agent / Stack | Mode | Issues Fixed | Chain Bonus | Score | Cost | Date |
 |------|--------------|------|-------------|-------------|-------|------|------|
-| 1 | muLLM hard-mode v6 (write tests + fix) | Hard | 20/20 | +10 | 110/110 | $0.45 | 2026-04-25 |
-| 1 | muLLM hard-mode v5 (write tests + fix) | Hard | 20/20 | +10 | 110/110 | $0.37 | 2026-04-24 |
-| 3 | muLLM hard-mode v4 (write tests + fix) | Hard | 14/20 | +10 | 80/110 | $0.68 | 2026-04-23 |
-| 4 | Claude Code autonomous (dangerously-skip-permissions) | Hard | 13/20 | +5 | 70/110 | $4.39 | 2026-04-25 |
-| 5 | Claude Code structured harness v2 (practice) | Hard | 10/20 | +5 | 55/110 | $2.36 | 2026-04-25 |
-| 5 | muLLM easy-mode (oracle tests pre-committed) | Easy | 11/20 | 0 | 55/110 | $0.12 | 2026-04-23 |
+| 1 | TheEngOrg/attempt-1 (bywonton) | Hard | 20/20 | +10 | 110/110 | — | 2026-04-28 |
+| 2 | muLLM hard-mode v6 (write tests + fix) | Hard | 20/20 | +10 | 110/110 | $0.45 | 2026-04-25 |
+| 3 | muLLM hard-mode v5 (write tests + fix) | Hard | 20/20 | +10 | 110/110 | $0.37 | 2026-04-24 |
+| 4 | muLLM hard-mode v4 (write tests + fix) | Hard | 14/20 | +10 | 80/110 | $0.68 | 2026-04-23 |
+| 5 | Claude Code autonomous (dangerously-skip-permissions) | Hard | 13/20 | +5 | 70/110 | $4.39 | 2026-04-25 |
+| 6 | Claude Code structured harness v2 (practice) | Hard | 10/20 | +5 | 55/110 | $2.36 | 2026-04-25 |
+| 7 | muLLM easy-mode (oracle tests pre-committed) | Easy | 11/20 | 0 | 55/110 | $0.12 | 2026-04-23 |
 
 ## Benchmark Configurations
 
