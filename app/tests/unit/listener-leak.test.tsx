@@ -1,188 +1,210 @@
 /**
  * Issue #12 — listener-leak
  *
- * Bug: AppInner (App.tsx lines 48-57) calls
+ * Bug: AppInner (app/src/App.tsx lines 49-57) calls
  *   useEffect(() => { document.addEventListener('keydown', handleKey) })
  * with NO dependency array and NO cleanup return.
- * Result: every render adds a fresh keydown listener; none are ever removed.
- * Keyboard shortcuts fire multiple times per keypress (N renders → N firings).
- *
- * CASE: A — INDEPENDENT (BUG #12 marker in App.tsx; distinct from chain BUG #19).
+ * Each render adds a fresh 'keydown' listener; none are ever removed.
+ * After N renders, pressing a key fires the shortcut N times.
  *
  * testFilter: listener-leak
+ *
+ * CASE: A — INDEPENDENT (BUG #12 marker in App.tsx; distinct from chain BUG #19)
  */
+import React, { createContext, useContext, useReducer, type ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act } from '@testing-library/react'
-import React from 'react'
-import { useEffect } from 'react'
+import type { AppState, AppAction } from '../../src/types'
+import { reducer } from '../../src/store/reducer'
+import { CARDS, COLUMNS, USERS, LABELS, SPRINTS } from '../../src/data/seed'
 
 // ---------------------------------------------------------------------------
-// Minimal reproduction harness — does NOT inline the logic; it imports the
-// real useEffect pattern from App.tsx indirectly by reproducing the exact
-// shape that makes the bug observable without needing the full app tree.
+// Stable AppContext mock — SCAFFOLDING to neutralise BUG #14.
 //
-// We isolate the specific useEffect call that carries BUG #12 so the test
-// remains deterministic and independent of unrelated component bugs (#14, etc.)
+// AppContext.tsx has BUG #14: AppProvider uses key={Date.now()} on the inner
+// Provider element, causing a full subtree remount on every render.
+// We replace AppProvider with a stable version sharing the same context ref.
+// The mock is hoisted by vitest before the import of AppInner below.
 // ---------------------------------------------------------------------------
 
-/**
- * A tiny component that mirrors the exact buggy pattern from AppInner:
- *   useEffect(() => { document.addEventListener('keydown', handleKey) })
- * — no dep array, no cleanup.
- * This is scaffolding only; the real bug lives in App.tsx AppInner().
- */
-function BuggyKeyListenerComponent({ onKey }: { onKey: () => void }) {
-  // Mirrors App.tsx lines 48-57 exactly: no dep array, no cleanup.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-        onKey()
-      }
-    }
-    document.addEventListener('keydown', handleKey)
-    // No cleanup — mirrors the bug
-  })
-  return <div data-testid="buggy" />
+interface AppContextValue {
+  state: AppState
+  dispatch: React.Dispatch<AppAction>
 }
 
-/**
- * Fixed variant — cleanup return present, dep array stable.
- * Used in the smoke test to confirm the harness itself is sound.
- */
-function FixedKeyListenerComponent({ onKey }: { onKey: () => void }) {
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-        onKey()
-      }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onKey])
-  return <div data-testid="fixed" />
+const StableContext = createContext<AppContextValue | null>(null)
+
+const initialState: AppState = {
+  cards: CARDS,
+  columns: COLUMNS,
+  users: USERS,
+  labels: LABELS,
+  sprints: SPRINTS,
+  currentUserId: 'u1',
+  searchQuery: '',
+  activeSprintId: null,
+  sprintViewEnabled: false,
+  boardName: 'My Board',
+}
+
+function StableAppProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  return React.createElement(StableContext.Provider, { value: { state, dispatch } }, children)
+}
+
+function useStableAppContext(): AppContextValue {
+  const ctx = useContext(StableContext)
+  if (!ctx) throw new Error('must be inside StableAppProvider')
+  return ctx
+}
+
+vi.mock('../../src/store/AppContext', () => ({
+  AppProvider: StableAppProvider,
+  useAppContext: useStableAppContext,
+}))
+
+// ---------------------------------------------------------------------------
+// Scaffolding mocks — prevent noise from components NOT under test.
+//
+// AppInner renders BoardHeader (SearchBar, SprintSelector, BoardStats) and
+// BoardView (DnD context, Column, Card). None are under test; BUG #12 lives
+// solely in AppInner's useEffect. Mocking avoids DnD setup errors and keeps
+// the listener spy signal clean.
+// ---------------------------------------------------------------------------
+vi.mock('../../src/hooks/useWebSocket', () => ({
+  useWebSocket: () => undefined,
+}))
+
+vi.mock('../../src/features/board/BoardView', () => ({
+  BoardView: () => React.createElement('div', { 'data-testid': 'mock-board-view' }),
+}))
+
+vi.mock('../../src/features/filters/SearchBar', () => ({
+  SearchBar: () => React.createElement('div', { 'data-testid': 'mock-search-bar' }),
+}))
+
+vi.mock('../../src/features/filters/SprintSelector', () => ({
+  SprintSelector: () => React.createElement('div', { 'data-testid': 'mock-sprint-selector' }),
+}))
+
+vi.mock('../../src/features/stats/BoardStats', () => ({
+  BoardStats: () => React.createElement('div', { 'data-testid': 'mock-board-stats' }),
+}))
+
+// ---------------------------------------------------------------------------
+// Import the REAL AppInner — the component whose useEffect contains BUG #12.
+// `export` was added to App.tsx solely as a test affordance.
+// ---------------------------------------------------------------------------
+import { AppInner } from '../../src/App'
+
+// ---------------------------------------------------------------------------
+// Wrapper: stable context provider wrapping the real AppInner.
+// ---------------------------------------------------------------------------
+function Wrapper() {
+  return React.createElement(
+    StableAppProvider,
+    null,
+    React.createElement(AppInner, null)
+  )
 }
 
 // ---------------------------------------------------------------------------
-// Helper: count keydown listeners attached to document.
-// jsdom does not expose getEventListeners(), so we instrument addEventListener.
+// Listener spy infrastructure.
+//
+// jsdom does not expose getEventListeners(). We spy on document.addEventListener
+// and document.removeEventListener and track the NET DELTA of 'keydown'
+// registrations per test. Net delta (adds minus removes) is used rather than
+// absolute count so the assertion is independent of any pre-existing listeners
+// attached by jsdom or other test infrastructure.
+//
+// origAdd / origRemove are captured fresh each beforeEach after restoring mocks,
+// so they always point to the real (un-spied) implementation.
 // ---------------------------------------------------------------------------
-let listenerCount = 0
-const origAdd = document.addEventListener.bind(document)
-const origRemove = document.removeEventListener.bind(document)
+let keydownNetDelta = 0
 
 beforeEach(() => {
-  listenerCount = 0
-  // Instrument addEventListener/removeEventListener for 'keydown' only
+  keydownNetDelta = 0
+
+  const realAdd = document.addEventListener.bind(document)
+  const realRemove = document.removeEventListener.bind(document)
+
   vi.spyOn(document, 'addEventListener').mockImplementation(
     (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-      if (type === 'keydown') listenerCount++
-      origAdd(type, listener, options)
+      if (type === 'keydown') keydownNetDelta++
+      realAdd(type, listener, options)
     }
   )
   vi.spyOn(document, 'removeEventListener').mockImplementation(
     (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => {
-      if (type === 'keydown') listenerCount--
-      origRemove(type, listener, options)
+      if (type === 'keydown') keydownNetDelta--
+      realRemove(type, listener, options)
     }
   )
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
+  keydownNetDelta = 0
 })
-
-// ---------------------------------------------------------------------------
-// Helper: fire a Ctrl+Z keydown event on document
-// ---------------------------------------------------------------------------
-function fireCtrlZ() {
-  act(() => {
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })
-    )
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('listener-leak', () => {
-  // --- Smoke test (must PASS even on bugged code) ---
-  it('smoke: listener count increments after mount', () => {
-    const onKey = vi.fn()
-    const { unmount } = render(<BuggyKeyListenerComponent onKey={onKey} />)
-    // At least 1 listener after mount
-    expect(listenerCount).toBeGreaterThanOrEqual(1)
+  // -------------------------------------------------------------------------
+  // Smoke 1: AppInner mounts without throwing and produces expected markup.
+  // Validates mock scaffolding is wired up correctly.
+  // Must PASS on v1-bugged source.
+  // -------------------------------------------------------------------------
+  it('smoke: AppInner renders without error and produces app container', () => {
+    const { container, unmount } = render(React.createElement(Wrapper))
+    expect(container.querySelector('.app')).not.toBeNull()
     unmount()
   })
 
-  // --- Bug test: handler accumulates on re-renders ---
-  it('listener-leak: N re-renders accumulate N keydown listeners (no cleanup)', () => {
-    const onKey = vi.fn()
-    const { rerender } = render(<BuggyKeyListenerComponent onKey={onKey} />)
-
-    const afterMount = listenerCount
-    expect(afterMount).toBeGreaterThanOrEqual(1)
-
-    // Force 4 additional re-renders by passing a new prop reference each time
-    for (let i = 0; i < 4; i++) {
-      rerender(<BuggyKeyListenerComponent onKey={vi.fn()} />)
-    }
-
-    // Bug: each render adds a listener without removing the old one.
-    // After 5 total renders the count should be >= 5.
-    // A correct implementation would keep it at 1.
-    expect(listenerCount).toBe(1)
-  })
-
-  // --- Bug test: multiple firings per keypress after re-renders ---
-  it('listener-leak: keyboard shortcut fires once per keypress regardless of render count', () => {
-    const onKey = vi.fn()
-    const { rerender } = render(<BuggyKeyListenerComponent onKey={onKey} />)
-
-    // Re-render 4 more times — accumulates listeners without cleanup
-    for (let i = 0; i < 4; i++) {
-      rerender(<BuggyKeyListenerComponent onKey={onKey} />)
-    }
-
-    onKey.mockClear()
-    fireCtrlZ()
-
-    // Bug: handler fires once per accumulated listener.
-    // After 5 renders without cleanup, fires 5 times instead of 1.
-    expect(onKey).toHaveBeenCalledTimes(1)
-  })
-
-  // --- Smoke: fixed component keeps exactly 1 listener after re-renders ---
-  it('smoke: fixed component (with cleanup) keeps exactly 1 listener across re-renders', () => {
-    const onKey = vi.fn()
-    const { rerender, unmount } = render(<FixedKeyListenerComponent onKey={onKey} />)
-
-    expect(listenerCount).toBe(1)
-
-    for (let i = 0; i < 4; i++) {
-      rerender(<FixedKeyListenerComponent onKey={onKey} />)
-    }
-
-    // With proper cleanup, count must not grow
-    expect(listenerCount).toBe(1)
+  // -------------------------------------------------------------------------
+  // Smoke 2: Single mount adds exactly 1 keydown listener (net delta = 1).
+  // Validates the spy is correctly counting additions.
+  // Must PASS on v1-bugged source.
+  // -------------------------------------------------------------------------
+  it('smoke: single mount registers exactly 1 keydown listener', () => {
+    const { unmount } = render(React.createElement(Wrapper))
+    expect(keydownNetDelta).toBe(1)
     unmount()
-    expect(listenerCount).toBe(0)
   })
 
-  // --- Smoke: fixed component fires handler exactly once per keypress ---
-  it('smoke: fixed component fires handler exactly once per keypress', () => {
-    const onKey = vi.fn()
-    const { rerender } = render(<FixedKeyListenerComponent onKey={onKey} />)
+  // -------------------------------------------------------------------------
+  // Bug test: after N re-renders the net keydown listener delta must stay at 1.
+  //
+  // On v1-bugged (App.tsx lines 49-57):
+  //   useEffect runs on every render (no dep array) and never removes the
+  //   previous listener (no cleanup return). After 5 renders → delta = 5.
+  //   FAILS on v1-bugged.
+  //
+  // After dev fix:
+  //   useEffect runs once on mount; cleanup return removes the listener before
+  //   re-registering (if deps change) or never re-registers (if dep array is
+  //   stable []). After 5 renders → delta = 1.
+  //   PASSES after fix.
+  //
+  // This test exercises the REAL AppInner from app/src/App.tsx.
+  // Dev fixes App.tsx; this test passes without modification.
+  // -------------------------------------------------------------------------
+  it('listener-leak: keydown listener net delta stays at 1 across N re-renders', () => {
+    const { rerender, unmount } = render(React.createElement(Wrapper))
 
+    // 1 mount + 4 forced re-renders = 5 total render cycles
     for (let i = 0; i < 4; i++) {
-      rerender(<FixedKeyListenerComponent onKey={onKey} />)
+      act(() => {
+        rerender(React.createElement(Wrapper))
+      })
     }
 
-    onKey.mockClear()
-    fireCtrlZ()
+    // Bugged:  delta = 5 — one new listener added per render, none removed
+    // Fixed:   delta = 1 — effect runs once on mount, cleanup prevents accumulation
+    expect(keydownNetDelta).toBe(1)
 
-    expect(onKey).toHaveBeenCalledTimes(1)
+    unmount()
   })
 })

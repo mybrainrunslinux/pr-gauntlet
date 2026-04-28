@@ -35,7 +35,7 @@ function BoardHeader() {
   )
 }
 
-function AppInner() {
+export function AppInner() {
   const { dispatch } = useAppContext()
 
   const handleCardUpdate = useCallback((card: Card) => {
