@@ -1,7 +1,7 @@
 name: PR-Gauntlet Score
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [v1-bugged]
   push:
     branches: [v1-bugged]
@@ -14,6 +14,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -24,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: app
+
+      - name: Lock scoring files to v1-bugged
+        run: git fetch origin v1-bugged && git checkout FETCH_HEAD -- scoring/
 
       - name: Run scorer
         id: score
@@ -44,7 +49,7 @@ jobs:
           echo "Branch: ${{ github.ref_name }} @ ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Post score comment (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         uses: actions/github-script@v7
         with:
           script: |
@@ -82,7 +87,7 @@ jobs:
           SCORE_JSON: "${{ steps.score.outputs.result }}"
 
       - name: Update leaderboard (PR only)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request_target'
         uses: actions/github-script@v7
         with:
           script: |
@@ -122,7 +127,6 @@ jobs:
             const existingRows = match[2].trim().split('\n').filter(r => r.trim().startsWith('|'));
             const parseScore = row => {
               const cols = row.split('|').map(c => c.trim()).filter(Boolean);
-              // Score is column index 5 (0-based): Rank(0) Agent(1) Mode(2) Fixed(3) Chain(4) Score(5) Cost(6) Date(7)
               const scoreCol = cols[5] || '';
               return parseInt(scoreCol.split('/')[0]) || 0;
             };
