@@ -53,7 +53,7 @@ This is the benchmark's hardest test: does the agent understand *why* or just *w
 ## Setup
 
 ```bash
-git clone https://github.com/0101tech/pr-gauntlet
+git clone https://github.com/mybrainrunslinux/pr-gauntlet
 cd pr-gauntlet
 npm install
 npm run dev          # starts app on localhost:5173 + WS server on :3001
