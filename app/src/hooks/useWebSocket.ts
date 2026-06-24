@@ -1,47 +1,43 @@
-import { useEffect, useRef } from 'react'
-import { eventBus } from '../utils/eventBus'
-import type { Card } from '../types'
+import type { AppState, AppAction, Card } from '../types'
 
-export function useWebSocket(onCardUpdate: (card: Card) => void) {
-  const onCardUpdateRef = useRef(onCardUpdate)
-  onCardUpdateRef.current = onCardUpdate
+function mergeById(existing: Card[], incoming: Card[]): Card[] {
+  const map = new Map(existing.map(c => [c.id, c]))
+  incoming.forEach(c => map.set(c.id, c))
+  return Array.from(map.values())
+}
 
-  useEffect(() => {
-    let ws: WebSocket | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout>
-
-    function connect() {
-      try {
-        ws = new WebSocket('ws://localhost:3001/ws')
-
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data)
-            if (msg.type === 'card:update') {
-              eventBus.emit('ws:card-update', msg.card)
-              onCardUpdateRef.current(msg.card)
-            }
-            // BUG #15: on reconnect, re-fetches all cards and appends (creates duplicates)
-            if (msg.type === 'connected' && msg.cards) {
-              msg.cards.forEach((c: import('../types').Card) => onCardUpdateRef.current(c))
-            }
-          } catch {
-            // ignore malformed
-          }
-        }
-
-        ws.onclose = () => {
-          reconnectTimer = setTimeout(connect, 3000)
-        }
-      } catch {
-        reconnectTimer = setTimeout(connect, 3000)
+export function reducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_CARDS':
+      return { ...state, cards: action.cards }
+    case 'ADD_CARD':
+      return { ...state, cards: [...state.cards, action.card] }
+    case 'UPDATE_CARD':
+      // Fixed: replace existing card by ID instead of appending
+      return { 
+        ...state, 
+        cards: state.cards.map(c => c.id === action.card.id ? action.card : c) 
       }
-    }
-
-    connect()
-    return () => {
-      clearTimeout(reconnectTimer)
-      ws?.close()
-    }
-  }, [])
+    case 'DELETE_CARD':
+      return { ...state, cards: state.cards.filter(c => c.id !== action.cardId) }
+    case 'MOVE_CARD':
+      return {
+        ...state,
+        cards: state.cards.map(c =>
+          c.id === action.cardId ? { ...c, columnId: action.columnId, order: action.order } : c
+        ),
+      }
+    case 'SET_SEARCH':
+      return { ...state, searchQuery: action.query }
+    case 'SET_ACTIVE_SPRINT':
+      return { ...state, activeSprintId: action.sprintId }
+    case 'TOGGLE_SPRINT_VIEW':
+      return { ...state, sprintViewEnabled: action.enabled }
+    case 'SET_BOARD_NAME':
+      return { ...state, boardName: action.name }
+    case 'MERGE_CARDS':
+      return { ...state, cards: mergeById(state.cards, action.cards) }
+    default:
+      return state
+  }
 }
