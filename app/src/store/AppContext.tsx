@@ -1,3 +1,4 @@
+// src/store/AppContext.tsx
 import React, { createContext, useContext, useReducer, type ReactNode } from 'react'
 import type { AppState, AppAction } from '../types'
 import { reducer } from './reducer'
@@ -25,10 +26,8 @@ const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
-  // BUG #14: key changes on each render — forces hook remount, resetting preferences
-  const providerKey = Date.now()
   return (
-    <AppContext.Provider value={{ state, dispatch }} key={providerKey}>
+    <AppContext.Provider value={{ state, dispatch }}>
       {children}
     </AppContext.Provider>
   )
