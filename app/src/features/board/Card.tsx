@@ -79,7 +79,7 @@ export function CardItem({ card }: Props) {
 
       {deleteTarget && (
         <DeleteDialog
-          card={state.cards.find(c => c.title === deleteTarget) as Card}
+          card={state.cards.find(c => c.id === deleteTarget) as Card}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
         />
