@@ -20,18 +20,6 @@ export function usePreferences() {
     loadPreferences('taskflow:prefs', DEFAULTS)
   )
 
-  // BUG #11: visibilitychange handler captures stale prefs in closure
-  useEffect(() => {
-    function onVisibility() {
-      if (document.visibilityState === 'visible') {
-        // Reads from closure — will overwrite newer changes with older prefs
-        savePreferences('taskflow:prefs', prefs)
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [prefs])
-
   function setPrefs(update: Partial<Preferences>) {
     // BUG #11: reads stale `prefs` from closure — tab switch triggers visibilitychange
     // which overwrites with stale saved value, reverting recent changes

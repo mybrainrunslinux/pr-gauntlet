@@ -18,6 +18,9 @@ export function savePreferences<T>(key: string, value: T): void {
 
 export function formatDate(isoDate: string | null): string {
   if (!isoDate) return ''
-  const d = new Date(isoDate) // BUG #3: parsed as UTC midnight — shifts one day west of UTC
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  const d = dateOnlyMatch
+    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+    : new Date(isoDate)
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
